@@ -12,6 +12,7 @@ namespace KangJaeWook.SurvivalShooter.Weapons
         private float m_MiniumExtent;
         private float m_PartialExtent;
         private float m_SqrtMinimumExtent;
+        private RaycastHit[] m_RaycastHits = new RaycastHit[2];
         private Vector3 m_PreviousPosition;
 
         private void Start()
@@ -28,18 +29,29 @@ namespace KangJaeWook.SurvivalShooter.Weapons
             Vector3 movementThisStep = m_Rigidbody.position - m_PreviousPosition;
             float movementSqrMagnitude = movementThisStep.sqrMagnitude;
 
-            if(movementSqrMagnitude > m_SqrtMinimumExtent)
+            if (movementSqrMagnitude > m_SqrtMinimumExtent)
             {
                 float movementMagnitude = Mathf.Sqrt(movementSqrMagnitude);
 
-                if(Physics.Raycast(m_PreviousPosition, movementThisStep
-                    , out RaycastHit hitInfo,
-                    movementMagnitude,
-                    m_Layermask.value))
+                int hitCount = Physics.RaycastNonAlloc(m_PreviousPosition, movementThisStep, m_RaycastHits, movementMagnitude, m_Layermask);
+
+                if (hitCount != 0)
                 {
-                    if (hitInfo.collider.isTrigger) m_Ammo.OnCheckCollision(hitInfo.collider);
-                    else
-                        m_Rigidbody.position = hitInfo.point - (movementThisStep / movementMagnitude) * m_PartialExtent;
+                    for (int i = 0; i < hitCount; ++i)
+                    {
+                        //  ref ?
+                        //  참조를 가지고 온다
+                        //   struct a = v;      <- Call by value
+                        //  class cls = dCls;   <- Call by reference
+                        ref RaycastHit hitinfo = ref m_RaycastHits[i];
+                        if (hitinfo.collider != m_Collider)
+                        {
+                            m_Ammo.OnCheckCollision(hitinfo.collider);
+                            break;
+                        }
+                        else
+                            m_Rigidbody.position = hitinfo.point - (movementThisStep / movementMagnitude) * m_PartialExtent;
+                    }
                 }
             }
 
